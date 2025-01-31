@@ -1,12 +1,24 @@
+$server = "127.0.0.1"
+$port = 13000
+$client = New-Object System.Net.Sockets.TcpClient($server, $port)
+$stream = $client.GetStream()
+
+# Crear el cuerpo de la solicitud
 $body = @{
- "UserSessionId"="12345678"
- "OptionalEmail"="MyEmail@gmail.com"
+    "UserSessionId"="12345678"
+    "OptionalEmail"="MyEmail@gmail.com"
 } | ConvertTo-Json
 
-#$header = @{
-# "Accept"="application/json"
-# "connectapitoken"="97fe6ab5b1a640909551e36a071ce9ed"
-# "Content-Type"="application/json"
-#} 
+# Convertir el cuerpo a bytes y enviarlo al servidor
+$bodyBytes = [System.Text.Encoding]::ASCII.GetBytes($body)
+$stream.Write($bodyBytes, 0, $bodyBytes.Length)
 
-Invoke-RestMethod -Uri "127.0.0.1:13000" -Method 'Post' -Body $body
+# Leer la respuesta del servidor
+$buffer = New-Object Byte[] 256
+$bytesRead = $stream.Read($buffer, 0, $buffer.Length)
+$response = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $bytesRead)
+Write-Host "Respuesta del servidor: $response"
+
+# Cerrar la conexión
+$stream.Close()
+$client.Close()
