@@ -2,9 +2,15 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
 
-class CacheProxyServer
+public class CacheProxyServer
 {
+    // Cache dictionary to store request and response pairs
+    private static Dictionary<string, string> cache = new Dictionary<string, string>();
+
     public static void Main(string[] args)
     {
         TcpListener server = null;
@@ -38,7 +44,7 @@ class CacheProxyServer
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Unkown Exception: {0}", ex);
+            Console.WriteLine("Unknown Exception: {0}", ex);
         }
         finally
         {
@@ -51,34 +57,83 @@ class CacheProxyServer
 
     private static void HandleClient(object obj)
     {
-        // Cast the object to TcpClient
         using TcpClient client = (TcpClient)obj;
         Console.WriteLine("Connected!");
 
-        // Buffer for reading data
         Byte[] bytes = new Byte[256];
         String? data = null;
-
-        // Get a stream object for reading and writing
         NetworkStream stream = client.GetStream();
 
         int i;
 
-        // Loop to receive all the data sent by the client.
+        // Log when waiting for data
+        Console.WriteLine("Waiting for data from client...");
+
         while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
         {
-            // Translate data bytes to a ASCII string.
             data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
             Console.WriteLine("Received: {0}", data);
 
-            // Process the data sent by the client.
-            data = data.ToUpper();
+            if (cache.ContainsKey(data))
+            {
+                string cachedResponse = cache[data];
+                byte[] msg = System.Text.Encoding.ASCII.GetBytes(cachedResponse);
+                stream.Write(msg, 0, msg.Length);
+                Console.WriteLine("Cache hit: Sent cached response: {0}", cachedResponse);
+            }
+            else
+            {
+                string response = ProcessRequest(data).Result; // Await the async method
 
-            byte[] msg = System.Text.Encoding.ASCII.GetBytes(data);
+                cache[data] = response;
 
-            // Send back a response.
-            stream.Write(msg, 0, msg.Length);
-            Console.WriteLine("Sent: {0}", data);
+                byte[] msg = System.Text.Encoding.ASCII.GetBytes(response);
+                stream.Write(msg, 0, msg.Length);
+                Console.WriteLine("Cache miss: Sent new response: {0}", response);
+            }
+        }
+
+        // Log when the client disconnects
+        Console.WriteLine("Client disconnected.");
+    }
+
+    private static async Task<string> ProcessRequest(string request)
+    {
+        // Define the target server address and port
+        string targetServer = "127.0.0.1"; // Replace with the target server's IP or hostname
+        int targetPort = 80; // Replace with the target server's port
+
+        using (TcpClient targetClient = new TcpClient())
+        {
+            try
+            {
+                // Connect to the target server
+                await targetClient.ConnectAsync(targetServer, targetPort);
+                Console.WriteLine("Connected to target server.");
+
+                // Get the network stream for sending and receiving data
+                NetworkStream targetStream = targetClient.GetStream();
+
+                // Convert the request string to bytes
+                byte[] requestBytes = Encoding.ASCII.GetBytes(request);
+
+                // Send the request to the target server
+                await targetStream.WriteAsync(requestBytes, 0, requestBytes.Length);
+                Console.WriteLine("Request forwarded to target server.");
+
+                // Read the response from the target server
+                byte[] buffer = new byte[4096];
+                int bytesRead = await targetStream.ReadAsync(buffer, 0, buffer.Length);
+                string response = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+
+                Console.WriteLine("Response received from target server.");
+                return response;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error in ProcessRequest: {0}", ex.Message);
+                return "Error: " + ex.Message;
+            }
         }
     }
 }
