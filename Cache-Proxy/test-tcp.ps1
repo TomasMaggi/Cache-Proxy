@@ -22,8 +22,8 @@ for ($i = 1; $i -le $numberOfRequests; $i++) {
                 $client = New-Object System.Net.Sockets.TcpClient($using:server, $using:port)
                 $stream = $client.GetStream()
 
-                # Create the request body (plain text)
-                $body = "Hello, Server! This is request $($RequestId)."
+                # Create the request body (valid absolute URI)
+                $body = "https://www.google.com"
 
                 # Convert the body to bytes and send it to the server
                 $bodyBytes = [System.Text.Encoding]::ASCII.GetBytes($body)
