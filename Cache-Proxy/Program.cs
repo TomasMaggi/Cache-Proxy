@@ -5,6 +5,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 public class CacheProxyServer
 {
@@ -13,6 +14,7 @@ public class CacheProxyServer
 
     public static void Main(string[] args)
     {
+        printStartupMessage();
         TcpListener server = null;
         try
         {
@@ -135,5 +137,17 @@ public class CacheProxyServer
                 return "Error: " + ex.Message;
             }
         }
+
+    }
+    private static void printStartupMessage(string version = "0.0.1")
+    {
+        Console.WriteLine("  ________________     ______           __            ____                       ");
+        Console.WriteLine(" /_  __/ ____/ __ \\   / ____/___ ______/ /_  ___     / __ \\_________  _  ____  __");
+        Console.WriteLine("  / / / /   / /_/ /  / /   / __ `/ ___/ __ \\/ _ \\   / /_/ / ___/ __ \\| |/_/ / / /");
+        Console.WriteLine(" / / / /___/ ____/  / /___/ /_/ / /__/ / / /  __/  / ____/ /  / /_/ />  </ /_/ / ");
+        Console.WriteLine("/_/  \\____/_/       \\____/\\__,_/\\___/_/ /_/\\___/  /_/   /_/   \\____/_/|_|\\__, /  ");
+        Console.WriteLine("                                                                        /____/   ");
+        Console.WriteLine("v: %0", version);
+        Console.WriteLine("Developed and mantained by Tomas Maggi");
     }
 }
